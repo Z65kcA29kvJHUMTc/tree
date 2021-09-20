@@ -8,14 +8,35 @@ pub enum Tree<T> {
 // https://www.reddit.com/r/rust/comments/fsbqwp/how_to_iterate_trees_nicely
 impl<T> Tree<T> {
     fn iter(&self) -> impl Iterator<Item = &T> {
-
-        fn traverse_depth<U>(start: &Tree<U>, stack: &mut Vec<Iter<Tree<U>>>) -> Option<U> {
-            todo!()
+        fn traverse_depth<'a, U>(
+            start: &'a Tree<U>,
+            stack: &mut Vec<Iter<'a, Tree<U>>>,
+        ) -> Option<&'a U> {
+            let mut node = start;
+            loop {
+                match *node {
+                    Tree::Leaf(ref item) => break Some(item),
+                    Tree::Children(ref children) => stack.push(children.iter()),
+                }
+                node = stack.last_mut().unwrap().next()?;
+            }
         }
 
-        std::iter::from_fn() {
-            todo!()
-        }
+        let mut stack = Vec::new();
+        let mut leaf = traverse_depth(self, &mut stack);
+
+        std::iter::from_fn({
+            move || loop {
+                if let Some(next) = leaf {
+                    break Some(next);
+                }
+                if let Some(next) = stack.last_mut()?.next() {
+                    leaf = traverse_depth(next, &mut stack);
+                } else {
+                    stack.pop();
+                }
+            }
+        })
     }
 }
 
@@ -26,17 +47,17 @@ mod tests {
     #[test]
     fn test_tree() {
         let tree = Tree::Children(vec![
-            Tree::Leaf(vec![1u32, 2, 3, 4]),
-            Tree::Leaf(vec![5, 6, 7, 8]),
+            Tree::Leaf(1),
+            Tree::Leaf(2),
             Tree::Children(vec![
-                Tree::Leaf(vec![9, 10]),
-                Tree::Leaf(vec![11, 12]),
-                Tree::Children(vec![Tree::Leaf(vec![13, 14]), Tree::Leaf(vec![15, 16])]),
-                Tree::Leaf(vec![17, 18]),
+                Tree::Leaf(3),
+                Tree::Leaf(4),
+                Tree::Children(vec![Tree::Leaf(5), Tree::Leaf(6)]),
+                Tree::Leaf(7),
             ]),
-            Tree::Leaf(vec![19, 20]),
+            Tree::Leaf(8),
         ]);
         let res: Vec<_> = tree.iter().copied().collect();
-        assert_eq!(&res, &(1..=20).collect::<Vec<u32>>());
+        assert_eq!(&res, &(1..=8).collect::<Vec<u32>>());
     }
 }
