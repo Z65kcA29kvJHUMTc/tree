@@ -7,7 +7,7 @@ pub enum Tree<T> {
 
 // https://www.reddit.com/r/rust/comments/fsbqwp/how_to_iterate_trees_nicely
 impl<T> Tree<T> {
-    fn iter(&self) -> impl Iterator<Item = &T> {
+    pub fn iter(&self) -> impl Iterator<Item = &T> {
         fn traverse_depth<'a, U>(
             start: &'a Tree<U>,
             stack: &mut Vec<Iter<'a, Tree<U>>>,
@@ -25,16 +25,14 @@ impl<T> Tree<T> {
         let mut stack = Vec::new();
         let mut leaf = traverse_depth(self, &mut stack);
 
-        std::iter::from_fn({
-            move || loop {
-                if let Some(next) = leaf {
-                    break Some(next);
-                }
-                if let Some(next) = stack.last_mut()?.next() {
-                    leaf = traverse_depth(next, &mut stack);
-                } else {
-                    stack.pop();
-                }
+        std::iter::from_fn(move || loop {
+            if let Some(next) = leaf.take() {
+                break Some(next);
+            }
+            if let Some(next) = stack.last_mut()?.next() {
+                leaf = traverse_depth(next, &mut stack);
+            } else {
+                stack.pop();
             }
         })
     }
